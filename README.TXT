@@ -6,7 +6,7 @@ pyinstaller --onefile --icon "D:\Programming\Python\Parsing_uslugio_ru_64bit\В�
 --hidden-import winapps ##
 
 Конвертация ui в py
-pyuic5 D:\Programming\Python\Goblin_drilling_v.2.2\Lib\site-packages\QtDesigner\Avito_parsing.ui -o myLibrary/My_pyqt5/Avito_ui_parsing.py
+pyuic5 D:\Programming\Python\Goblin_drilling_v.2.2\Lib\site-packages\QtDesigner\Yandex_uslugio_parsing.ui -o myLibrary/My_pyqt5/Yandex_uslugio_ui.py
 
 В библиотеке venv/Lib/site-packages/selenium/webdriver/common/service.py
 изменил строку 77 добавил аргумент в subprocess.Popen add (shell = True) что бы не показывать консоли geckodriver

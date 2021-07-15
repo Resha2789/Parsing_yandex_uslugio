@@ -1,10 +1,11 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QObject
-from myLibrary.My_pyqt5 import Avito_ui_parsing
+from myLibrary.My_pyqt5 import Yandex_uslugio_ui
 from myLibrary.InitialData import InitialData
-from myLibrary.UslugioLibrary.ParsingThreading import UslugioThreading
-from myLibrary.UslugioLibrary.FindProxy import FindProxyThreading
-from myLibrary import Loger, Ecxel, RequestTime, TesseractImg, DriverChrome
+from myLibrary.ThreadingLibrary.ParsingThreading import UslugioThreading
+from myLibrary.ThreadingLibrary.FindProxyThreading import FindProxyThreading
+from myLibrary.ThreadingLibrary.FindCityThreading import FindCityThreading
+from myLibrary import Loger, Ecxel, RequestTime, DriverChrome
 import re
 import os
 import win32com.client
@@ -27,16 +28,18 @@ class Communicate(QObject):
     change_key_words = QtCore.pyqtSignal(object)
     change_textBrowser_console = QtCore.pyqtSignal(object)
     pushButton_uslugio_stop_enabled = QtCore.pyqtSignal(object)
+    comboBox_city_change = QtCore.pyqtSignal(object)
 
 
-class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.OutLogger, Loger.OutputLogger, InitialData,
-                 RequestTime.RequestTime, TesseractImg.TesseractImg):
+class MainWindow(QtWidgets.QMainWindow, Yandex_uslugio_ui.Ui_MainWindow, Loger.OutLogger, Loger.OutputLogger, InitialData,
+                 RequestTime.RequestTime):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.load_md()
-        self.uslugio_threading = None
-        self.uslugio_find_proxy_threading = None
+        self.uslugio_yandex_threading = None
+        self.find_proxy_threading = None
+        self.find_city_threading = None
         self.log = False
 
         # Конектим пользовательский сигнал на MainWindow
@@ -50,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
         # Устанавливаем иконку
         self.setWindowIcon(QtGui.QIcon("""Все для сборщика данных/icon_phone.ico"""))
         # Город
-        self.lineEdit_uslugio_city.setText(self.inp_city)
+        # self.lineEdit_uslugio_city.setText(self.inp_city)
         # Ключевые слова
         self.textBrowser_uslugio_key_words.setText(self.key_words_str)
         # Показывать браузер
@@ -64,20 +67,19 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
         self.checkBox_continuation.setChecked(self.inp_continuation_uslugio)
         # Начать занова запись в excel uslugio
         self.checkBox_rewriting.setChecked(self.inp_rewriting_uslugio)
-        # Данные вручную указываем откуда брать
-        self.checkBox_uslugio_auto_input.setChecked(self.inp_auto_get_proxy)
-        # Сайт указанный вручную для получения прокси
-        self.checkBox_uslugio_manual_input.setChecked(self.inp_manual_get_proxy)
         # Показать все логи
         self.checkBox_show_all_logs.setChecked(self.inp_show_all_logs)
+        # Список городов
+        self.comboBox_city.addItems(self.inp_cities_rus)
+        # Установка выбранного города
+        self.comboBox_city.setCurrentText(self.inp_city)
+
         # Подсказка что перед использованием программы нужно установить tesseract-ocr
         self.textBrowser_console.append("Привет!"
-                                        "<br>Для использования данной программы нужно установить: <b style='color: rgb(0, 0, 255);'>tesseract-ocr</b>"
-                                        "<br>Установочный файл лежит в папке: <b style='color: rgb(0, 0, 255);'>Все для сборщика данных/tesseract-ocr-setup-3.02.02.exe</b>"
+                                        "<br>Ccылки на бесплатные прокси сервера:"
+                                        "<br><b style='font: 75 14pt Arial'>https://awmproxy.com/freeproxy.php</b>"
+                                        "<br><b style='font: 75 14pt Arial'>https://advanced.name/ru/freeproxy</b>"
                                         )
-        # "<br>Ccылки на бесплатные прокси сервера:"
-        # "<br><b style='font: 75 14pt Arial'>https://awmproxy.com/freeproxy.php</b>"
-        # "<br><b style='font: 75 14pt Arial'>https://advanced.name/ru/freeproxy</b>"
 
     def set_connect(self):
         # СТАРТ парсинга
@@ -92,6 +94,8 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
         self.checkBox_rewriting.clicked.connect(self.check_box_rewriting)
         # Кнопка открытия Excel файла uslugio
         self.pushButton_file_excel_open.clicked.connect(self.file_excel_open)
+        # Кнопка обновления списка городов
+        self.pushButton_update_city.clicked.connect(self.start_find_city)
 
         # Обновляем прогрес бар
         self.Commun.progressBar.connect(self.progressBar)
@@ -103,13 +107,15 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
         self.Commun.change_textBrowser_console.connect(self.set_textBrowser_console)
         # Активируем или деактивируем кнопку pushButton_start
         self.Commun.pushButton_uslugio_stop_enabled.connect(self.set_enabled_pushButton_uslugio_stop)
+        # Обновляем список городов
+        self.Commun.comboBox_city_change.connect(self.update_comboBox_city)
 
         # Вывод сообщений в консоль
         self.OUTPUT_LOGGER_STDOUT.emit_write.connect(self.append_log)
         self.OUTPUT_LOGGER_STDERR.emit_write.connect(self.append_log)
 
         # Записываем город
-        self.lineEdit_uslugio_city.textChanged.connect(self.set_city)
+        self.comboBox_city.currentTextChanged.connect(self.set_city)
 
         # Записываем ключевые слова
         self.textBrowser_uslugio_key_words.textChanged.connect(self.set_key_words)
@@ -120,14 +126,8 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
         # Записываем отображение браузера
         self.checkBox_uslugio_show_brawser.clicked.connect(self.set_show_browser)
 
-        # Сайт указанный вручную для получения прокси
+        # Данные указанный вручную для получения прокси
         self.pushButton_uslugio_set_manual_proxy.clicked.connect(self.set_manual_proxy)
-
-        # Данные вручную указываем откуда брать
-        self.checkBox_uslugio_auto_input.clicked.connect(self.set_check_auto_input)
-
-        # Сайт указанный вручную для получения прокси
-        self.checkBox_uslugio_manual_input.clicked.connect(self.set_check_manual_input)
 
         # Показать все логи
         self.checkBox_show_all_logs.clicked.connect(self.set_check_show_all_logs)
@@ -145,17 +145,29 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
 
         return False
 
-    def start_uslugio_find_proxy(self):
-        pass
-        # Запускаем дополнительный поток Uslugio.com
-        if self.uslugio_find_proxy_threading is None:
-            self.uslugio_find_proxy_threading = FindProxyThreading(mainWindow=self,
-                                                                          url='https://advanced.name/ru/freeproxy?type=https&page=1',
-                                                                          browser=False,
-                                                                          js='Все для сборщика данных/javaScript/ProxyJsLibrary.js')
+    def start_find_city(self):
+        self.pushButton_start.setEnabled(False)
+        if self.find_city_threading is None:
+            self.find_city_threading = FindCityThreading(mainWindow=self,
+                                                         url='https://uslugi.yandex.ru/geo-catalog',
+                                                         browser=False,
+                                                         js='Все для сборщика данных/javaScript/YandexJsLibrary.js')
 
         self.log = True
-        self.uslugio_find_proxy_threading.start()
+        self.parsing_uslugio_yandex = True
+        self.find_city_threading.start()
+
+    def start_find_proxy(self):
+        # pass
+        # Запускаем дополнительный поток Uslugio.com
+        if self.find_proxy_threading is None:
+            self.find_proxy_threading = FindProxyThreading(mainWindow=self,
+                                                           url='https://advanced.name/ru/freeproxy?type=https&page=1',
+                                                           browser=False,
+                                                           js='Все для сборщика данных/javaScript/ProxyJsLibrary.js')
+
+        self.log = True
+        self.find_proxy_threading.start()
 
     def start_main_threading(self):
 
@@ -163,25 +175,24 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
             print(f"$<b style='color: rgb(255, 0, 0);'>Выберите файл Excel для записи!</b>")
             return
 
-        if not self.find_tesseract():
-            return
-
-        if self.inp_manual_get_proxy:
-            try:
-                proxy = open(self.inp_path_manual_proxy).read()
-                if not re.search(r'\d+[.]\d+[.]\d+[.]\d+[:]\d+', proxy):
-                    print(f"$В файле не найдены прокси сервера!")
-                    return
-            except:
+        try:
+            proxy = open(self.inp_path_manual_proxy).read()
+            if not re.search(r'\d+[.]\d+[.]\d+[.]\d+[:]\d+', proxy):
                 print(f"$В файле не найдены прокси сервера!")
                 return
+        except:
+            print(f"$В файле не найдены прокси сервера!")
+            return
 
         # if not self.check_time():
         #     return
 
-        self.parsing_avito = True
-        # self.start_uslugio_find_proxy()
+        self.parsing_uslugio_yandex = True
 
+        # Запускаем отдельный поток для пойска прокси сервера
+        self.start_find_proxy()
+
+        # Считываем информацию с Excel файла
         if self.inp_continuation_uslugio:
             excel = Ecxel.ExcelWrite(mainWindow=self)
             excel.load_work_book()
@@ -189,19 +200,19 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
                 pass
 
         # Запускаем дополнительный поток Uslugio.com
-        if self.uslugio_threading is None:
-            self.uslugio_threading = UslugioThreading(mainWindow=self,
-                                                      proxy=self.inp_proxy,
-                                                      browser=self.inp_show_browser,
-                                                      js='Все для сборщика данных/javaScript/AvitoJsLibrary.js')
+        if self.uslugio_yandex_threading is None:
+            self.uslugio_yandex_threading = UslugioThreading(mainWindow=self,
+                                                             proxy=self.inp_proxy,
+                                                             browser=self.inp_show_browser,
+                                                             js='Все для сборщика данных/javaScript/YandexJsLibrary.js')
 
         self.log = True
-        self.uslugio_threading.start()
+        self.uslugio_yandex_threading.start()
         self.pushButton_start.setEnabled(False)
 
     def stop_main_threading(self):
 
-        threading.Thread(target=self.uslugio_threading.stop_threading).start()
+        threading.Thread(target=self.uslugio_yandex_threading.stop_threading).start()
 
         self.pushButton_stop.setEnabled(False)
         self.pushButton_start.setEnabled(False)
@@ -238,19 +249,31 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
             self.textBrowser_console.append(f"<br><b style='color: rgb(0, 0, 0);'>{data[0]}</b>")
 
     def closeEvent(self, event):
-        self.uslugio_threading: DriverChrome.StartDriver
+        self.uslugio_yandex_threading: DriverChrome.StartDriver
 
         self.update_json()
-        self.parsing_avito = False
-        if self.uslugio_threading is not None:
+        self.parsing_uslugio_yandex = False
+        if self.uslugio_yandex_threading is not None:
             try:
-                self.uslugio_threading.kill_geckodriver()
+                self.uslugio_yandex_threading.kill_geckodriver()
             except Exception as error:
                 return
         self.close()
 
+    def update_comboBox_city(self, data):
+        temp = self.inp_city
+        self.comboBox_city.clear()
+        self.comboBox_city.addItems(data)
+        self.comboBox_city.setCurrentText(temp)
+        self.update_json()
+        self.textBrowser_console.append(f"<br><b style='color: rgb(0, 255, 0);'>Города обновлены!</b>")
+        self.parsing_uslugio_yandex = False
+        self.pushButton_start.setEnabled(True)
+        self.find_city_threading = None
+
     def set_city(self, val):
         self.inp_city = val
+        self.update_json()
 
     def set_key_words(self, data=None):
         if data is None:
@@ -339,7 +362,7 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
         self.update_json()
 
     def file_excel_open(self):
-        if self.uslugio_threading is not None:
+        if self.uslugio_yandex_threading is not None:
             # Запись в EXcel
             self.write_to_excel()
         shell = win32com.client.Dispatch("WScript.Shell")
@@ -350,35 +373,13 @@ class MainWindow(QtWidgets.QMainWindow, Avito_ui_parsing.Ui_MainWindow, Loger.Ou
         excel = Ecxel.ExcelWrite(mainWindow=self)
         if not excel.load_work_book():
             return False
-        if not excel.write_to_excel(self.out_avito_all_data):
+        if not excel.write_to_excel(self.out_all_data):
             return False
         return True
 
     def set_manual_proxy(self):
         file_path = os.path.abspath(self.inp_path_manual_proxy)
         os.startfile(file_path)
-
-    def set_check_auto_input(self):
-        if self.checkBox_uslugio_auto_input.isChecked():
-            self.inp_auto_get_proxy = True
-            self.inp_manual_get_proxy = False
-            self.checkBox_uslugio_manual_input.setChecked(False)
-        else:
-            self.inp_auto_get_proxy = False
-            self.inp_manual_get_proxy = True
-            self.checkBox_uslugio_manual_input.setChecked(True)
-        self.update_json()
-
-    def set_check_manual_input(self):
-        if self.checkBox_uslugio_manual_input.isChecked():
-            self.inp_auto_get_proxy = False
-            self.inp_manual_get_proxy = True
-            self.checkBox_uslugio_auto_input.setChecked(False)
-        else:
-            self.inp_auto_get_proxy = True
-            self.inp_manual_get_proxy = False
-            self.checkBox_uslugio_auto_input.setChecked(True)
-        self.update_json()
 
     def set_check_show_all_logs(self):
         self.inp_show_all_logs = self.checkBox_show_all_logs.isChecked()

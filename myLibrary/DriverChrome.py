@@ -38,7 +38,7 @@ class StartDriver(ProxyCheck.ProxyCheck):
         m: MainWindow.MainWindow
         m = self.mainWindow
 
-        if not m.parsing_avito:
+        if not m.parsing_uslugio_yandex:
             return
 
         self.set_url = url
@@ -82,22 +82,22 @@ class StartDriver(ProxyCheck.ProxyCheck):
         m: MainWindow.MainWindow
         m = self.mainWindow
 
-        while m.parsing_avito:
+        while m.parsing_uslugio_yandex:
             try:
-                if not m.parsing_avito:
+                if not m.parsing_uslugio_yandex:
                     return
                 if self.total_person != len(m.out_phone_number):
                     self.total_person = len(m.out_phone_number)
-                    self.time_out = datetime.now() + timedelta(minutes=5)
+                    self.time_out = datetime.now() + timedelta(minutes=50)
                     # print(f"START TIME_OUT_THREAD {str(self.time_out)}")
 
                 if datetime.now() > self.time_out:
-                    self.time_out = datetime.now() + timedelta(minutes=5)
-                    if m.uslugio_threading.driver is not None:
+                    self.time_out = datetime.now() + timedelta(minutes=50)
+                    if m.uslugio_yandex_threading.driver is not None:
                         print(f"TIME_OUT_THREAD!")
-                        print(f"DRIVER REFRESH {m.uslugio_threading.set_url}")
+                        print(f"DRIVER REFRESH {m.uslugio_yandex_threading.set_url}")
                         self.set_proxy(proxy=False, change=False)
-                        m.uslugio_threading.driver.refresh()
+                        m.uslugio_yandex_threading.driver.refresh()
                 time.sleep(5)
 
             except Exception as detail:
@@ -105,7 +105,7 @@ class StartDriver(ProxyCheck.ProxyCheck):
                 print("Перезапускаем tim_out_thread")
                 self.driver = None
 
-                if m.parsing_avito:
+                if m.parsing_uslugio_yandex:
                     return self.tim_out_thread()
                 else:
                     return
@@ -118,7 +118,7 @@ class StartDriver(ProxyCheck.ProxyCheck):
 
         profile = webdriver.FirefoxProfile()
         profile.set_preference("general.useragent.override",
-                               "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.25")
+                               "Mozilla / 5.0 (Windows NT 10.0; Win64; x64) AppleWebKit / 537.36 (KHTML, как Gecko) Chrome / 80.0.3987.163 Safari / 537.36 OPR / 67.0.3575.137")
 
         # # Disable CSS
         # profile.set_preference('permissions.default.stylesheet', 2)
@@ -145,18 +145,23 @@ class StartDriver(ProxyCheck.ProxyCheck):
         if proxy:
             if change or len(m.verified_proxies) == 0:
                 while len(m.verified_proxies) == 0:
-                    if not m.parsing_avito:
+                    if not m.parsing_uslugio_yandex:
                         return
                     print(f"Ждем прокси...")
                     time.sleep(2)
                 else:
-                    print(f"Работаем через прокси: {m.verified_proxies[0]}")
-                    ssl_addr = m.verified_proxies[0].split(':')[0]
-                    ssl_port = int(m.verified_proxies[0].split(':')[1])
+                    if len(m.verified_proxies) == 1:
+                        ssl_addr = m.verified_proxies[0].split(':')[0]
+                        ssl_port = int(m.verified_proxies[0].split(':')[1])
 
-                    m.uslugio_used_proxies.append(m.verified_proxies[0])
-                    m.verified_proxies = m.verified_proxies[1:]
-                    m.Commun.proxyUpdate.emit(m.verified_proxies)
+                    if len(m.verified_proxies) > 1:
+                        print(f"Работаем через прокси: {m.verified_proxies[0]}")
+                        m.uslugio_used_proxies.append(m.verified_proxies[0])
+                        m.verified_proxies = m.verified_proxies[1:]
+                        m.Commun.proxyUpdate.emit(m.verified_proxies)
+
+                        ssl_addr = m.verified_proxies[0].split(':')[0]
+                        ssl_port = int(m.verified_proxies[0].split(':')[1])
             else:
                 ssl_addr = m.verified_proxies[0].split(':')[0]
                 ssl_port = int(m.verified_proxies[0].split(':')[1])
@@ -190,7 +195,7 @@ class Execute(StartDriver):
         m: MainWindow.MainWindow
         m = self.mainWindow
 
-        if not m.parsing_avito:
+        if not m.parsing_uslugio_yandex:
             return
 
         try:
@@ -240,6 +245,7 @@ class Execute(StartDriver):
                     scr.type = 'text/javascript';
                     scr.src = 'https://code.jquery.com/jquery-3.6.0.min.js';
                     document.head.appendChild(scr);
+                     
                 }
             """)
 
@@ -263,7 +269,7 @@ class Execute(StartDriver):
 
         except Exception as detail:
             print("ERROR set_library:", detail)
-            if m.parsing_avito:
+            if m.parsing_uslugio_yandex:
                 return self.star_driver(url=self.set_url)
             else:
                 return
@@ -289,7 +295,7 @@ class Execute(StartDriver):
             # Запускаем javaScript в браузере и получаем результат
             result = self.driver.execute_script(f"return {data}")
         except Exception as detail:
-            if not m.parsing_avito:
+            if not m.parsing_uslugio_yandex:
                 return
             print(f"EXCEPT execute_js: {data}")
             print("ERROR:", detail)

@@ -2,8 +2,12 @@
 class IntPut:
     # Веб сайт
     inp_website = 'Uslugio'
-    # Город
+    # Выбранный город
     inp_city = 'Уфа'
+    # Города на английсоком с кодом
+    inp_cities_eng = []
+    # Города на русском
+    inp_cities_rus = []
     # Ключевые слова
     inp_key_words = ['ЛВС', 'wifi']
     # Показывать браузер
@@ -18,11 +22,7 @@ class IntPut:
     inp_continuation_uslugio = True
     # Перезапись файла
     inp_rewriting_uslugio = False
-    # Данные с сайта https://advanced.name/ru
-    inp_auto_get_proxy = True
-    # Данные вручную указываем откуда брать
-    inp_manual_get_proxy = False
-    # Сайт указанный вручную для получения прокси
+    # Данные указанный вручную для получения прокси
     inp_path_manual_proxy = False
     # Показать все логи
     inp_show_all_logs = False
@@ -45,4 +45,4 @@ class OutPut:
     # url клиента
     out_url = []
     # Все данные
-    out_avito_all_data = []
+    out_all_data = []

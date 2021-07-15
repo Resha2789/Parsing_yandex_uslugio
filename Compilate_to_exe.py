@@ -2,11 +2,11 @@ import PyInstaller.__main__
 import shutil
 
 def install(sistem=64, name='Сборщик_телефонов_64bit'):
-    folder = 'Сборщик_данных_avito_64bit'
+    folder = 'Сборщик_данных_uslugi_yandex_64bit'
     if sistem == 32:
-        folder = 'Сборщик_данных_avito_32bit'
+        folder = 'Сборщик_данных_uslugi_yandex_32bit'
 
-    src_data = f"D:\Programming\Python\Parsing_avito\Все для сборщика данных"
+    src_data = f"D:\Programming\Python\Parsing_yandex_uslugio\Все для сборщика данных"
     dst_data = f"D:\Фриланс\Авито\Валерий\{folder}\Все для сборщика данных"
     try:
         shutil.rmtree(dst_data)
@@ -20,7 +20,7 @@ def install(sistem=64, name='Сборщик_телефонов_64bit'):
         "--noconsole",
         "--onefile",
         "--hidden-import=winapps",
-        f"--icon=D:\Programming\Python\Parsing_avito\\""Все для сборщика данных\icon_phone.ico",
+        f"--icon=D:\Programming\Python\parsing_uslugio_yandex\\""Все для сборщика данных\icon_phone.ico",
         f"--distpath=D:\Фриланс\Авито\Валерий\\{folder}\\",
         f"-n={name}"
     ])

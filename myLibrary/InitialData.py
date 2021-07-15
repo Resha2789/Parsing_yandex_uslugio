@@ -29,10 +29,10 @@ class InitialData(InputOutput.IntPut, InputOutput.OutPut):
             self.inp_name_excel_avito = self.md['Name_excel_uslugio']
             self.inp_continuation_uslugio = self.md['Продолжить_файл_uslugio']
             self.inp_rewriting_uslugio = self.md['Перезапись_файла_uslugio']
-            self.inp_auto_get_proxy = self.md['Авто_получение_прокси']
-            self.inp_manual_get_proxy= self.md['Ручное_получение_прокси']
             self.inp_path_manual_proxy = self.md['Адрес_для_получения_прокси']
             self.inp_show_all_logs = self.md['Показать_все_логи']
+            self.inp_cities_eng = self.md['Города_eng']
+            self.inp_cities_rus = self.md['Города_rus']
 
             # Ключевые слова
             self.key_words_str = ''
@@ -47,7 +47,7 @@ class InitialData(InputOutput.IntPut, InputOutput.OutPut):
                 self.proxy_str += i + '\n'
 
             # Статус парсинга uslugio
-            self.parsing_avito = False
+            self.parsing_uslugio_yandex = False
 
             # Статус загрузки драйвера
             self.webdriver_loaded = False
@@ -70,6 +70,9 @@ class InitialData(InputOutput.IntPut, InputOutput.OutPut):
             # Стату поиска прокси для uslugio
             self.uslugio_found_proxy = False
 
+            # Код и город на английском для url
+            self.cod_city_eng = ""
+
         except Exception as error:
             self.update_json()
             print(f"Данных нет, созданы данные по умолчанию: {self.md}")
@@ -84,10 +87,10 @@ class InitialData(InputOutput.IntPut, InputOutput.OutPut):
         self.md['Name_excel_uslugio'] = self.inp_name_excel_avito
         self.md['Продолжить_файл_uslugio'] = self.inp_continuation_uslugio
         self.md['Перезапись_файла_uslugio'] = self.inp_rewriting_uslugio
-        self.md['Авто_получение_прокси'] = self.inp_auto_get_proxy
-        self.md['Ручное_получение_прокси'] = self.inp_manual_get_proxy
         self.md['Адрес_для_получения_прокси'] = self.inp_path_manual_proxy
         self.md['Показать_все_логи'] = self.inp_show_all_logs
+        self.md['Города_eng'] = self.inp_cities_eng
+        self.md['Города_rus'] = self.inp_cities_rus
 
         temp_md = {}
         temp_md.update(self.md)
